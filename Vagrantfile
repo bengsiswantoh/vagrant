@@ -25,10 +25,14 @@ Vagrant.configure("2") do |config|
   # NOTE: This will enable public access to the opened port
   # config.vm.network "forwarded_port", guest: 80, host: 8080
 
+  # development
+  config.vm.network "forwarded_port", guest: 3000, host: 4000
   # pgadmin
   config.vm.network "forwarded_port", guest: 5050, host: 5050
+  # mattermost
+  config.vm.network "forwarded_port", guest: 8065, host: 8065
   # rabbitmq management
-  # config.vm.network "forwarded_port", guest: 15672, host: 15672
+  config.vm.network "forwarded_port", guest: 15672, host: 15672
 
   # Create a forwarded port mapping which allows access to a specific port
   # within the machine from a port on the host machine and only allow access
@@ -50,7 +54,7 @@ Vagrant.configure("2") do |config|
   # argument is a set of non-required options.
   # config.vm.synced_folder "../data", "/vagrant_data"
 
-  config.vm.synced_folder "./data", "/vagrant"
+  config.vm.synced_folder "../wsl", "/vagrant"
 
   # Provider-specific configuration so you can fine-tune various
   # backing providers for Vagrant. These expose provider-specific options.
@@ -71,7 +75,8 @@ Vagrant.configure("2") do |config|
     vb.name = "ubuntu"
 
     # Customize the amount of memory on the VM:
-    vb.memory = "4096"
+    vb.memory = "2048"
+    # vb.memory = "4096"
   end
 
   # Enable provisioning with a shell script. Additional provisioners such as
