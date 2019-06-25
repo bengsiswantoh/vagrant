@@ -1,11 +1,42 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+VAGRANTFILE_API_VERSION = "2"
+# REQUIRED_PLUGINS        = %w(vagrant-vbguest vagrant-librarian-chef-nochef vagrant-disksize)
+REQUIRED_PLUGINS        = %w(vagrant-vbguest vagrant-disksize)
+
+plugins_to_install = REQUIRED_PLUGINS.select { |plugin| not Vagrant.has_plugin? plugin }
+if not plugins_to_install.empty?
+  puts "Installing required plugins: #{plugins_to_install.join(' ')}"
+  if system "vagrant plugin install #{plugins_to_install.join(' ')}"
+    exec "vagrant #{ARGV.join(' ')}"
+  else
+    abort "Installation of one or more plugins has failed. Aborting. Please read the Bike Index README."
+  end
+end
+
+PORTS = [
+  # rails
+  { guest: 3000, host: 4000},
+  # pgadmin
+  { guest: 5050, host: 5050},
+  # pg
+  { guest: 5432, host: 5432},
+  # rabbitmq
+  { guest: 5672, host: 5672},
+  # redis
+  { guest: 6379, host: 6379},
+  # mattermost
+  { guest: 8065, host: 8065},
+  # rabbitmq management
+  { guest: 15672, host: 15672}
+]
+
 # All Vagrant configuration is done below. The "2" in Vagrant.configure
 # configures the configuration version (we support older styles for
 # backwards compatibility). Please don't change it unless you know what
 # you're doing.
-Vagrant.configure("2") do |config|
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # The most common configuration options are documented and commented below.
   # For a complete reference, please see the online documentation at
   # https://docs.vagrantup.com.
@@ -14,6 +45,7 @@ Vagrant.configure("2") do |config|
   # boxes at https://vagrantcloud.com/search.
   config.vm.box = "ubuntu/bionic64"
 
+  # Customize the amount of disk on the VM:
   # TODO: vagrant plugin install vagrant-disksize
   config.disksize.size = '60GB'
 
@@ -27,15 +59,9 @@ Vagrant.configure("2") do |config|
   # accessing "localhost:8080" will access port 80 on the guest machine.
   # NOTE: This will enable public access to the opened port
   # config.vm.network "forwarded_port", guest: 80, host: 8080
-
-  # development
-  config.vm.network "forwarded_port", guest: 3000, host: 4000
-  # pgadmin
-  config.vm.network "forwarded_port", guest: 5050, host: 5050
-  # mattermost
-  config.vm.network "forwarded_port", guest: 8065, host: 8065
-  # rabbitmq management
-  config.vm.network "forwarded_port", guest: 15672, host: 15672
+  PORTS.each do |port|
+    config.vm.network "forwarded_port", guest: port[:guest], host: port[:host]
+  end
 
   # Create a forwarded port mapping which allows access to a specific port
   # within the machine from a port on the host machine and only allow access
@@ -56,7 +82,6 @@ Vagrant.configure("2") do |config|
   # the path on the guest to mount the folder. And the optional third
   # argument is a set of non-required options.
   # config.vm.synced_folder "../data", "/vagrant_data"
-
   config.vm.synced_folder "../wsl", "/vagrant"
 
   # Provider-specific configuration so you can fine-tune various
@@ -73,7 +98,6 @@ Vagrant.configure("2") do |config|
   #
   # View the documentation for the provider you are using for more
   # information on available options.
-
   config.vm.provider "virtualbox" do |vb|
     vb.name = "ubuntu"
 
@@ -89,4 +113,53 @@ Vagrant.configure("2") do |config|
   #   apt-get update
   #   apt-get install -y apache2
   # SHELL
+
+  # Use Chef Solo to provision our virtual machine
+  # config.vm.provision :chef_solo do |chef|
+  #   chef.cookbooks_path = ["cookbooks", "site-cookbooks"]
+
+  #   chef.add_recipe "apt"
+  #   chef.add_recipe "build-essential"
+  #   chef.add_recipe "system::install_packages"
+  #   chef.add_recipe "ruby_build"
+  #   chef.add_recipe "ruby_rbenv::user"
+  #   chef.add_recipe "ruby_rbenv::user_install"
+  #   chef.add_recipe "vim"
+  #   chef.add_recipe "postgresql::server"
+  #   chef.add_recipe "postgresql::client"
+
+  #   chef.json = {
+  #     rbenv: {
+  #       user_installs: [{
+  #         user: 'ubuntu',
+  #         rubies: ["2.4.0"],
+  #         global: "2.4.0",
+  #         gems: {
+  #         "2.4.0" => [{ name: "bundler" }]
+  #       }
+  #       }]
+  #     },
+  #     system: {
+  #       packages: {
+  #         install: ["redis-server", "nodejs", "libpq-dev"]
+  #       }
+  #     },
+  #     postgresql: {
+  #       :pg_hba => [{
+  #         :comment => "# Add vagrant role",
+  #         :type => 'local', :db => 'all', :user => 'postgres', :addr => nil, :method => 'trust'
+  #       }],
+  #       :users => [{
+  #         "username": "postgres",
+  #         "password": "postgres",
+  #         "superuser": true,
+  #         "replication": false,
+  #         "createdb": true,
+  #         "createrole": false,
+  #         "inherit": false,
+  #         "login": true
+  #       }]
+  #     }
+  #   }
+  # end
 end
